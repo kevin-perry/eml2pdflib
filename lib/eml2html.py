@@ -78,10 +78,9 @@ class EmailtoHtml(object):
         for header in FORMATTED_HEADERS_TO_INCLUDE:
             if self.eml[header]:
                 decoded_string = self.__get_utf8_header(self.eml[header])
-                header_info = header_info + '<b>' + header + '</b>: '\
-                    + decoded_string + '<br/>'
+                header_info = f'{header_info}<b>{header}</b>: {decoded_string}<br/>'
 
-        return header_info + '<br/>'
+        return f'{header_info}<br/>'
 
     def __get_utf8_header(self, header):
         # There is a simpler way of doing this here:
@@ -89,13 +88,12 @@ class EmailtoHtml(object):
         # seem to work, as it inserts a space between certain elements
         # in the string that's not warranted/correct.
         decoded_header = decode_header(header)
-        hdr = ""
-        for element in decoded_header:
-            if isinstance(element[0], bytes):
-                hdr += str(element[0], element[1] or 'ASCII')
-            else:
-                hdr += element[0]
-        return hdr
+        return "".join(
+            str(element[0], element[1] or 'ASCII')
+            if isinstance(element[0], bytes)
+            else element[0]
+            for element in decoded_header
+        )
 
     def __cid_replace(self, matchobj):
         cid = matchobj.group(1)
@@ -110,7 +108,7 @@ class EmailtoHtml(object):
             image_base64 = re.sub("[\r\n\t]", "", image_base64)
             image_decoded = image_part.get_payload(decode=True)
             mime_type = self.__get_mime_type(image_decoded)
-            return "data:" + mime_type + ";base64," + image_base64
+            return f"data:{mime_type};base64,{image_base64}"
         # else:
         #     raise FatalException(
         #         "Could not find image cid " + cid + " in email content.")
@@ -141,16 +139,24 @@ class EmailtoHtml(object):
         return None
 
     def __find_part_by_content_id(self, message, content_id):
-        for part in message.walk():
-            if part['Content-ID'] in (content_id, '<' + content_id + '>'):
-                return part
-        return None
+        return next(
+            (
+                part
+                for part in message.walk()
+                if part['Content-ID'] in (content_id, f'<{content_id}>')
+            ),
+            None,
+        )
 
     def __part_by_content_type(self, message, content_type):
-        for part in message.walk():
-            if part.get_content_type() == content_type:
-                return part
-        return None
+        return next(
+            (
+                part
+                for part in message.walk()
+                if part.get_content_type() == content_type
+            ),
+            None,
+        )
 
     def __remove_invalid_urls(self, payload):
         soup = BeautifulSoup(payload, "html5lib")
@@ -162,16 +168,14 @@ class EmailtoHtml(object):
                 if lower_src == 'broken':
                     del img['src']
                 elif not lower_src.startswith('data'):
-                    found_blacklist = False
-
-                    for image_load_blacklist_item in IMAGE_LOAD_BLACKLIST:
-                        if image_load_blacklist_item in lower_src:
-                            found_blacklist = True
-
-                    if not found_blacklist:
-                        if not utils.can_url_fetch(src):
-                            del img['src']
-                    else:
+                    found_blacklist = any(
+                        image_load_blacklist_item in lower_src
+                        for image_load_blacklist_item in IMAGE_LOAD_BLACKLIST
+                    )
+                    if (
+                        not found_blacklist
+                        and not utils.can_url_fetch(src)
+                        or found_blacklist
+                    ):
                         del img['src']
-
         return str(soup)

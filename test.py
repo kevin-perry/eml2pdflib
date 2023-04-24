@@ -20,15 +20,13 @@ class EmailHelper(object):
         self.mail.select()
 
     def get_emails(self):
-        uids = self.mail.uid('SEARCH', 'ALL')[1][0].split()
-        return uids
+        return self.mail.uid('SEARCH', 'ALL')[1][0].split()
 
     def get_email_message(self, email_id):
         _, data = self.mail.uid('FETCH', email_id, '(RFC822)')
         raw_email = data[0][1]
         raw_email_string = raw_email.decode('utf-8')
-        email_message = email.message_from_string(raw_email_string)
-        return email_message
+        return email.message_from_string(raw_email_string)
 
 
 email_helper = EmailHelper(IMAP_SERVER, EMAIL_ADDRESS,
@@ -45,12 +43,12 @@ for uid in uids:
     email_message = email_helper.get_email_message(uid)
     html = email_to_html_convertor.convert(email_message)
 
-    filename = uid.decode() + ".jpg"
+    filename = f"{uid.decode()}.jpg"
     img_path = html_to_img_convertor.save_img(
         html.encode(), output_dir, filename)
     print(img_path)
 
-    filename = uid.decode() + ".pdf"
+    filename = f"{uid.decode()}.pdf"
     pdf_path = html_to_pdf_convertor.save_pdf(
         html.encode(), output_dir, filename)
     print(pdf_path)
