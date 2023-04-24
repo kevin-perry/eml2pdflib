@@ -43,9 +43,7 @@ class HtmltoPdf(object):
         counter = 1
         file_name_parts = os.path.splitext(filename)
         while os.path.isfile(filename):
-            filename = "%s_%s%s" % (file_name_parts[0],
-                                    '_' + str(counter),
-                                    file_name_parts[1])
+            filename = f"{file_name_parts[0]}__{str(counter)}{file_name_parts[1]}"
             counter += 1
         return filename
 
@@ -59,7 +57,7 @@ class HtmltoPdf(object):
         original_error = str(error, 'utf-8').rstrip()
         stripped_error = stripped_error.rstrip()
 
-        if ret_code > 0 and original_error == '':
+        if ret_code > 0 and not original_error:
             raise FatalException("wkhtmltopdf failed with exit code " +
                                  str(ret_code) +
                                  ", no error output.")

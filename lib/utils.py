@@ -6,11 +6,6 @@ def can_url_fetch(src):
     try:
         req = Request(src)
         urlopen(req)
-    except HTTPError:
+    except (HTTPError, URLError, ValueError):
         return False
-    except URLError:
-        return False
-    except ValueError:
-        return False
-
     return True
